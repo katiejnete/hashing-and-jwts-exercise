@@ -54,14 +54,13 @@ class User {
   /** Authenticate: is this username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-    const result = await db.query(`SELECT * FROM users WHERE username = $1`, [
+    const result = await db.query(`SELECT password FROM users WHERE username = $1`, [
       username,
     ]);
-    const hashedPassword = result.rows[0];
+    const hashedPassword = result.rows[0].password;
     if (hashedPassword) {
       return await bcrypt.compare(password, hashedPassword);
     }
-    throw new ExpressError("Invalid username/password", 400);
   }
 
   /** Update last_login_at for user */

@@ -17,7 +17,8 @@ router.post("/login", async (req,res,next) => {
     if (await User.authenticate(username, password) === true) {
       const token = jwt.sign({username}, SECRET_KEY);
       return res.json({token});
-    }
+    } 
+    throw new ExpressError("Invalid username/password", 400);
   } catch (err) {
     return next(err);
   }
@@ -34,7 +35,7 @@ router.post("/register", async (req, res, next) => {
   try {
     const user = await User.register(req.body);
     const token = jwt.sign(user.username, SECRET_KEY);
-    return res.json(token);
+    return res.json({token});
   } catch (err) {
     if (err.code == 23505)
     return next(new ExpressError("Username already exists", 409));
