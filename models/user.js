@@ -22,39 +22,47 @@ class User {
    *    {username, password, first_name, last_name, phone}
    */
 
-  static async register({ username, password, firstName, lastName, phone }) {
-    try {
-      if (!username || !password || !firstName || !lastName || !phone)
-        throw new ExpressError(
-          "Please check and fill in required JSON data",
-          422
-        );
-      const hashedPassword = bcrypt.hash(password, BCRYPT_WORK_FACTOR);
-      const user = new User({ username, password, firstName, lastName, phone });
-      const result = await db.query(
-        `INSERT INTO users (username, password, first_name, last_name, phone, join_at, last_login_at)
+  static async register(reqBody) {
+    const { username, password, firstName, lastName, phone } = reqBody;
+    if (!username || !password || !firstName || !lastName || !phone)
+      throw new ExpressError(
+        "Please check and fill in required JSON data",
+        422
+      );
+    Object.values(reqBody).forEach(value => {
+      if (typeof value !== 'string') throw new ExpressError("Please enter JSON data as string", 400);
+    })
+    const user = new User(reqBody);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
+    const result = await db.query(
+      `INSERT INTO users (username, password, first_name, last_name, phone, join_at, last_login_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7) 
        `,
-        [
-          username,
-          hashedPassword,
-          firstName,
-          lastName,
-          phone,
-          user.joinAt,
-          user.lastLoginAt,
-        ]
-      );
-      return user;
-    } catch (err) {
-      if (err.code == 23505)
-        throw new ExpressError("Username already exists", 409);
-    }
+      [
+        username,
+        hashedPassword,
+        firstName,
+        lastName,
+        phone,
+        user.joinAt,
+        user.lastLoginAt,
+      ]
+    );
+    return user;
   }
 
   /** Authenticate: is this username/password valid? Returns boolean. */
 
-  static async authenticate(username, password) {}
+  static async authenticate(username, password) {
+    const result = await db.query(`SELECT * FROM users WHERE username = $1`, [
+      username,
+    ]);
+    const hashedPassword = result.rows[0];
+    if (hashedPassword) {
+      return await bcrypt.compare(password, hashedPassword);
+    }
+    throw new ExpressError("Invalid username/password", 400);
+  }
 
   /** Update last_login_at for user */
 
