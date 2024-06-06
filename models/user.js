@@ -29,9 +29,10 @@ class User {
         "Please check and fill in required JSON data",
         422
       );
-    Object.values(reqBody).forEach(value => {
-      if (typeof value !== 'string') throw new ExpressError("Please enter JSON data as string", 400);
-    })
+    Object.values(reqBody).forEach((value) => {
+      if (typeof value !== "string")
+        throw new ExpressError("Please enter JSON data as string", 400);
+    });
     const user = new User(reqBody);
     const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const result = await db.query(
@@ -54,9 +55,10 @@ class User {
   /** Authenticate: is this username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-    const result = await db.query(`SELECT password FROM users WHERE username = $1`, [
-      username,
-    ]);
+    const result = await db.query(
+      `SELECT password FROM users WHERE username = $1`,
+      [username]
+    );
     const hashedPassword = result.rows[0].password;
     if (hashedPassword) {
       const verify = await bcrypt.compare(password, hashedPassword);
@@ -68,13 +70,21 @@ class User {
   /** Update last_login_at for user */
 
   static async updateLoginTimestamp(username) {
-    await db.query(`UPDATE users SET last_login_at = $1 WHERE username = $2`, [new Date(), username]);
+    await db.query(`UPDATE users SET last_login_at = $1 WHERE username = $2`, [
+      new Date(),
+      username,
+    ]);
   }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
 
-  static async all() {}
+  static async all() {
+    const results = await db.query(
+      `SELECT username, first_name, last_name, phone FROM users;`
+    );
+    return results.rows;
+  }
 
   /** Get: get user by username
    *
