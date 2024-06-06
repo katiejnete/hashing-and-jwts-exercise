@@ -59,13 +59,17 @@ class User {
     ]);
     const hashedPassword = result.rows[0].password;
     if (hashedPassword) {
-      return await bcrypt.compare(password, hashedPassword);
+      const verify = await bcrypt.compare(password, hashedPassword);
+      if (verify) this.updateLoginTimestamp(username);
+      return verify;
     }
   }
 
   /** Update last_login_at for user */
 
-  static async updateLoginTimestamp(username) {}
+  static async updateLoginTimestamp(username) {
+    await db.query(`UPDATE users SET last_login_at = $1 WHERE username = $2`, [new Date(), username]);
+  }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
