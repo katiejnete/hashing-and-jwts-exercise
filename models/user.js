@@ -2,37 +2,54 @@
 const db = require("../db");
 const bcrypt = require("bcrypt");
 const { BCRYPT_WORK_FACTOR } = require("../config");
-const jwt = require("jsonwebtoken");
-const { SECRET_KEY, JWT_OPTIONS } = require("../config");
 const ExpressError = require("../expressError");
 /** User of the site. */
 
 class User {
+  constructor({ username, password, firstName, lastName, phone }) {
+    this.username = username;
+    this.password = password;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.phone = phone;
+    const joinAt = new Date();
+    joinAt.setUTCHours(0, 0, 0, 0);
+    this.joinAt = joinAt.toISOString();
+    this.lastLoginAt = new Date();
+  }
+
   /** register new user -- returns
    *    {username, password, first_name, last_name, phone}
    */
 
-  static async register({ username, password, first_name, last_name, phone }) {
-      if (!username || !password || !first_name || !last_name || !phone) throw new ExpressError("Please check and fill in required JSON data", 422)
+  static async register({ username, password, firstName, lastName, phone }) {
+    try {
+      if (!username || !password || !firstName || !lastName || !phone)
+        throw new ExpressError(
+          "Please check and fill in required JSON data",
+          422
+        );
       const hashedPassword = bcrypt.hash(password, BCRYPT_WORK_FACTOR);
-      const date = new Date();
-      date.setUTCHours(0, 0, 0, 0);
+      const user = new User({ username, password, firstName, lastName, phone });
       const result = await db.query(
         `INSERT INTO users (username, password, first_name, last_name, phone, join_at, last_login_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING username, password, first_name, last_name, phone
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
        `,
         [
           username,
           hashedPassword,
-          first_name,
-          last_name,
+          firstName,
+          lastName,
           phone,
-          date.toISOString(),
-          new Date(),
+          user.joinAt,
+          user.lastLoginAt,
         ]
       );
-      const token = jwt.sign(result.rows[0], SECRET_KEY, JWT_OPTIONS);
-      return token;
+      return user;
+    } catch (err) {
+      if (err.code == 23505)
+        throw new ExpressError("Username already exists", 409);
+    }
   }
 
   /** Authenticate: is this username/password valid? Returns boolean. */
