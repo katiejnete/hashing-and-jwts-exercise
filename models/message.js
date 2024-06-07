@@ -3,7 +3,6 @@
 const db = require("../db");
 const ExpressError = require("../expressError");
 
-
 /** Message on the site. */
 
 class Message {
@@ -11,16 +10,17 @@ class Message {
    *    {id, from_username, to_username, body, sent_at}
    */
 
-  static async create({fromUsername, toUsername, body}) {
+  static async create({ fromUsername, toUsername, body }) {
     const result = await db.query(
-        `INSERT INTO messages (
+      `INSERT INTO messages (
               from_username,
               to_username,
               body,
               sent_at)
             VALUES ($1, $2, $3, current_timestamp)
             RETURNING id, from_username, to_username, body, sent_at`,
-        [fromUsername, toUsername, body]);
+      [fromUsername, toUsername, body]
+    );
 
     return result.rows[0];
   }
@@ -29,11 +29,12 @@ class Message {
 
   static async markRead(id) {
     const result = await db.query(
-        `UPDATE messages
+      `UPDATE messages
            SET read_at = current_timestamp
            WHERE id = $1
            RETURNING id, read_at`,
-        [id]);
+      [id]
+    );
 
     if (!result.rows[0]) {
       throw new ExpressError(`No such message: ${id}`, 404);
@@ -50,9 +51,9 @@ class Message {
    *
    */
 
-  static async get(id) {
+  static async get(id, username) {
     const result = await db.query(
-        `SELECT m.id,
+      `SELECT m.id,
                 m.from_username,
                 f.first_name AS from_first_name,
                 f.last_name AS from_last_name,
@@ -68,34 +69,40 @@ class Message {
             JOIN users AS f ON m.from_username = f.username
             JOIN users AS t ON m.to_username = t.username
           WHERE m.id = $1`,
-        [id]);
+      [id]
+    );
 
     let m = result.rows[0];
-
     if (!m) {
       throw new ExpressError(`No such message: ${id}`, 404);
     }
-
-    return {
-      id: m.id,
-      from_user: {
-        username: m.from_username,
-        first_name: m.from_first_name,
-        last_name: m.from_last_name,
-        phone: m.from_phone,
-      },
-      to_user: {
-        username: m.to_username,
-        first_name: m.to_first_name,
-        last_name: m.to_last_name,
-        phone: m.to_phone,
-      },
-      body: m.body,
-      sent_at: m.sent_at,
-      read_at: m.read_at,
-    };
+    if (username === m.from_username || username === m.to_username) {
+      if (username === m.to_username && !m.read_at) {
+        const message = this.markRead(id);
+        return message;
+      }
+      return {
+        id: m.id,
+        from_user: {
+          username: m.from_username,
+          first_name: m.from_first_name,
+          last_name: m.from_last_name,
+          phone: m.from_phone,
+        },
+        to_user: {
+          username: m.to_username,
+          first_name: m.to_first_name,
+          last_name: m.to_last_name,
+          phone: m.to_phone,
+        },
+        body: m.body,
+        sent_at: m.sent_at,
+        read_at: m.read_at,
+      };
+    } else {
+      throw new ExpressError(`Unauthorized`, 401);
+    }
   }
 }
-
 
 module.exports = Message;
