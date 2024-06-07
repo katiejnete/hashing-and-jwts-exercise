@@ -1,6 +1,7 @@
 const express = require("express");
 const router = new express.Router();
 const Message = require("../models/message");
+const { ensureLoggedIn } = require("../middleware/auth");
 
 /** GET /:id - get detail of message.
  *
@@ -15,7 +16,7 @@ const Message = require("../models/message");
  *
  **/
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", ensureLoggedIn, async (req, res, next) => {
   try {
     const id = req.params.id;
     const { username } = req.user;
@@ -26,16 +27,16 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-/** POST / - post message.
+/** POST / - post message
  *
  * {to_username, body} =>
  *   {message: {id, from_username, to_username, body, sent_at}}
  *
  **/
 
-router.post("/", async (req, res, next) => {
+router.post("/", ensureLoggedIn, async (req, res, next) => {
   try {
-    const from_username = req.user;
+    const from_username = req.user.username;
     const { to_username, body } = req.body;
     const message = await Message.create({ from_username, to_username, body });
     return res.json({ message });
@@ -52,7 +53,7 @@ router.post("/", async (req, res, next) => {
  *
  **/
 
-router.post("/:id/read", async (req, res, next) => {
+router.post("/:id/read", ensureLoggedIn, async (req, res, next) => {
   try {
     const id = req.params.id;
     const { username } = req.user;
