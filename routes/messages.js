@@ -54,9 +54,9 @@ router.post("/", async (req, res, next) => {
 
 router.post("/:id/read", async (req, res, next) => {
   try {
-    const from_username = req.user;
-    const { to_username, body } = req.body;
-    const message = await Message.create({ from_username, to_username, body });
+    const id = req.params.id;
+    const { username } = req.user;
+    const message = await Message.markRead(id, username);
     return res.json({ message });
   } catch (err) {
     return next(err);

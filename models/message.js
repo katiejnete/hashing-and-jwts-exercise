@@ -27,20 +27,25 @@ class Message {
 
   /** Update read_at for message */
 
-  static async markRead(id) {
-    const result = await db.query(
-      `UPDATE messages
-           SET read_at = current_timestamp
-           WHERE id = $1
-           RETURNING id, read_at`,
-      [id]
-    );
-
-    if (!result.rows[0]) {
-      throw new ExpressError(`No such message: ${id}`, 404);
+  static async markRead(id, username) {
+    const message = await this.get(id, username);
+    const to_username = message.to_user.username;
+    if (to_username === username ) {
+      const result = await db.query(
+        `UPDATE messages
+             SET read_at = current_timestamp
+             WHERE id = $1
+             RETURNING id, read_at`,
+        [id]
+      );
+  
+      if (!result.rows[0]) {
+        throw new ExpressError(`No such message: ${id}`, 404);
+      }
+  
+      return result.rows[0];
     }
-
-    return result.rows[0];
+    throw new ExpressError(`Unauthorized`, 400)
   }
 
   /** Get: get message by id
@@ -77,10 +82,6 @@ class Message {
       throw new ExpressError(`No such message: ${id}`, 404);
     }
     if (username === m.from_username || username === m.to_username) {
-      if (username === m.to_username && !m.read_at) {
-        const message = this.markRead(id);
-        return message;
-      }
       return {
         id: m.id,
         from_user: {
