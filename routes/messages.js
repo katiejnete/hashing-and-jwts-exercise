@@ -21,7 +21,7 @@ const ExpressError = require("../expressError");
 router.get("/:id", async (req, res, next) => {
   try {
     const id = req.params.id;
-    const {username} = req.user;
+    const { username } = req.user;
     const message = await Message.get(id, username);
     return res.json({ message });
   } catch (err) {
@@ -55,15 +55,15 @@ router.post("/", async (req, res, next) => {
  *
  **/
 
-router.post("/:id/read", async (req,res,next) => {
+router.post("/:id/read", async (req, res, next) => {
   try {
     const fromUsername = req.user;
     const { toUsername, body } = req.body;
     const message = await Message.create({ fromUsername, toUsername, body });
-    return res.json({ message });    
+    return res.json({ message });
   } catch (err) {
     return next(err);
   }
-})
+});
 
 module.exports = router;

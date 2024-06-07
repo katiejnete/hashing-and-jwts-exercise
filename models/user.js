@@ -27,13 +27,7 @@ class User {
         VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp) 
         RETURNING username, password, first_name, last_name, phone
        `,
-      [
-        username,
-        hashedPassword,
-        firstName,
-        lastName,
-        phone,
-      ]
+      [username, hashedPassword, firstName, lastName, phone]
     );
     return result.rows[0];
   }
@@ -56,9 +50,10 @@ class User {
   /** Update last_login_at for user */
 
   static async updateLoginTimestamp(username) {
-    await db.query(`UPDATE users SET last_login_at = current_timestamp WHERE username = $1`, [
-      username,
-    ]);
+    await db.query(
+      `UPDATE users SET last_login_at = current_timestamp WHERE username = $1`,
+      [username]
+    );
   }
 
   /** All: basic info on all users:
@@ -82,7 +77,8 @@ class User {
 
   static async get(username) {
     const result = await db.query(
-      `SELECT username, first_name, last_name, phone, join_at, last_login_at FROM users WHERE username = $1`, [username]
+      `SELECT username, first_name, last_name, phone, join_at, last_login_at FROM users WHERE username = $1`,
+      [username]
     );
     return result.rows[0];
   }
@@ -96,6 +92,26 @@ class User {
    */
 
   static async messagesFrom(username) {
+    const results = await db.query(
+      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.from_username WHERE m.from_username = $1`,
+      [username]
+    );
+    const messages = [];
+    for (let result of results.rows) {
+      const {
+        id,
+        username,
+        first_name,
+        last_name,
+        phone,
+        body,
+        sent_at,
+        read_at,
+      } = result;
+      const to_user = { username, first_name, last_name, phone };
+      messages.push({ id, to_user, body, sent_at, read_at });
+    }
+    return messages;
   }
 
   /** Return messages to this user.
@@ -106,7 +122,28 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-  static async messagesTo(username) {}
+  static async messagesTo(username) {
+    const results = await db.query(
+      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.to_username WHERE m.to_username = $1`,
+      [username]
+    );
+    const messages = [];
+      for (let result of results.rows) {
+        const {
+          id,
+          username,
+          first_name,
+          last_name,
+          phone,
+          body,
+          sent_at,
+          read_at,
+        } = result;
+        const from_user = { username, first_name, last_name, phone };
+        messages.push({ id, from_user, body, sent_at, read_at });
+      }
+      return messages;
+  }
 }
 
 module.exports = User;
