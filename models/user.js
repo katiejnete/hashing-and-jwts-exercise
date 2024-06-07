@@ -6,18 +6,6 @@ const ExpressError = require("../expressError");
 /** User of the site. */
 
 class User {
-  constructor({ username, password, firstName, lastName, phone }) {
-    this.username = username;
-    this.password = password;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.phone = phone;
-    const joinAt = new Date();
-    joinAt.setUTCHours(0, 0, 0, 0);
-    this.joinAt = joinAt.toISOString();
-    this.lastLoginAt = new Date();
-  }
-
   /** register new user -- returns
    *    {username, password, first_name, last_name, phone}
    */
@@ -33,11 +21,11 @@ class User {
       if (typeof value !== "string")
         throw new ExpressError("Please enter JSON data as string", 400);
     });
-    const user = new User(reqBody);
     const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const result = await db.query(
       `INSERT INTO users (username, password, first_name, last_name, phone, join_at, last_login_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp) 
+        RETURNING username, password, first_name, last_name, phone
        `,
       [
         username,
@@ -45,11 +33,9 @@ class User {
         firstName,
         lastName,
         phone,
-        user.joinAt,
-        user.lastLoginAt,
       ]
     );
-    return user;
+    return result.rows[0];
   }
 
   /** Authenticate: is this username/password valid? Returns boolean. */
@@ -70,8 +56,7 @@ class User {
   /** Update last_login_at for user */
 
   static async updateLoginTimestamp(username) {
-    await db.query(`UPDATE users SET last_login_at = $1 WHERE username = $2`, [
-      new Date(),
+    await db.query(`UPDATE users SET last_login_at = current_timestamp WHERE username = $1`, [
       username,
     ]);
   }
@@ -110,7 +95,8 @@ class User {
    *   {username, first_name, last_name, phone}
    */
 
-  static async messagesFrom(username) {}
+  static async messagesFrom(username) {
+  }
 
   /** Return messages to this user.
    *

@@ -1,3 +1,10 @@
+const express = require("express");
+const router = new express.Router();
+const Message = require("../models/message");
+const jwt = require("jsonwebtoken");
+const { SECRET_KEY } = require("../config");
+const ExpressError = require("../expressError");
+
 /** GET /:id - get detail of message.
  *
  * => {message: {id,
@@ -11,6 +18,9 @@
  *
  **/
 
+// router.get("/:id", (req,res,next) => {
+//     Message.
+// })
 
 /** POST / - post message.
  *
@@ -19,6 +29,16 @@
  *
  **/
 
+router.post("/", async (req,res,next) => {
+    try {
+        const fromUsername = req.user;
+        const {toUsername, body} = req.body;
+        const message = await Message.create({fromUsername, toUsername, body});
+        return res.json({message});
+    } catch (err) {
+        return next(err);
+    }
+})
 
 /** POST/:id/read - mark message as read:
  *
@@ -28,3 +48,4 @@
  *
  **/
 
+module.exports = router;
