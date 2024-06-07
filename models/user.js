@@ -11,8 +11,8 @@ class User {
    */
 
   static async register(reqBody) {
-    const { username, password, firstName, lastName, phone } = reqBody;
-    if (!username || !password || !firstName || !lastName || !phone)
+    const { username, password, first_name, last_name, phone } = reqBody;
+    if (!username || !password || !first_name || !last_name || !phone)
       throw new ExpressError(
         "Please check and fill in required JSON data",
         422
@@ -27,7 +27,7 @@ class User {
         VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp) 
         RETURNING username, password, first_name, last_name, phone
        `,
-      [username, hashedPassword, firstName, lastName, phone]
+      [username, hashedPassword, first_name, last_name, phone]
     );
     return result.rows[0];
   }
@@ -39,11 +39,13 @@ class User {
       `SELECT password FROM users WHERE username = $1`,
       [username]
     );
-    const hashedPassword = result.rows[0].password;
-    if (hashedPassword) {
-      const verify = await bcrypt.compare(password, hashedPassword);
-      if (verify) this.updateLoginTimestamp(username);
-      return verify;
+    if (result.rows[0]) {
+      const hashedPassword = result.rows[0].password;
+      if (hashedPassword) {
+        const verify = await bcrypt.compare(password, hashedPassword);
+        if (verify) this.updateLoginTimestamp(username);
+        return verify;
+      }
     }
   }
 
@@ -93,7 +95,7 @@ class User {
 
   static async messagesFrom(username) {
     const results = await db.query(
-      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.from_username WHERE m.from_username = $1`,
+      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.to_username WHERE m.from_username = $1`,
       [username]
     );
     const messages = [];
@@ -124,7 +126,7 @@ class User {
 
   static async messagesTo(username) {
     const results = await db.query(
-      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.to_username WHERE m.to_username = $1`,
+      `SELECT m.id, users.username AS username, users.first_name AS first_name, users.last_name AS last_name, users.phone AS phone, m.body, m.sent_at, m.read_at FROM messages AS m JOIN users ON users.username = m.from_username WHERE m.to_username = $1`,
       [username]
     );
     const messages = [];

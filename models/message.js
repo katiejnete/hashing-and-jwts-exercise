@@ -10,7 +10,7 @@ class Message {
    *    {id, from_username, to_username, body, sent_at}
    */
 
-  static async create({ fromUsername, toUsername, body }) {
+  static async create({ from_username, to_username, body }) {
     const result = await db.query(
       `INSERT INTO messages (
               from_username,
@@ -19,7 +19,7 @@ class Message {
               sent_at)
             VALUES ($1, $2, $3, current_timestamp)
             RETURNING id, from_username, to_username, body, sent_at`,
-      [fromUsername, toUsername, body]
+      [from_username, to_username, body]
     );
 
     return result.rows[0];

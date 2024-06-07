@@ -2,7 +2,6 @@ const db = require("../db");
 const User = require("../models/user");
 const Message = require("../models/message");
 
-
 describe("Test Message class", function () {
 
   beforeEach(async function () {
@@ -67,7 +66,7 @@ describe("Test Message class", function () {
   });
 
   test("can get", async function () {
-    let u = await Message.get(1);
+    let u = await Message.get(1, "test1");
     expect(u).toEqual({
       id: expect.any(Number),
       body: "u1-to-u2",
